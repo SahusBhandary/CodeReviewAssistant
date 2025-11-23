@@ -1,18 +1,45 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect
+import json
+from flask_sqlalchemy import SQLAlchemy
+import requests
+import base64
+from datetime import datetime
+from github import Github
 
 app = Flask(__name__)
+g = Github()
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     # Get the payload and headers from the request
     payload = request.json
-    headers = dict(request.headers)
 
-    print("Web Hook Recieved!")
-    print("Headers:", headers)
-    print("Payload:", payload)
+    payload_data = json.loads(payload['payload'])
+    repo_name = payload_data['repository']['name']
+    owner_name = payload_data['repository']['owner']['login']
 
-    return jsonify({"status": "received"}), 200
+    print(repo_name)
+    print(owner_name)
 
+    # If successful push, then we get the new file contents and feed it to the Chatbot
+
+    return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
+
+@app.route('/repo/<owner>/<repo>', methods=['GET'])
+def get_repo_info(owner, repo):
+    try:
+        repo = g.get_repo(f"{owner}/{repo}")
+        return jsonify({
+            'name': repo.name,
+            'description': repo.description,
+            'stars': repo.stargazers_count,
+            'forks': repo.forks_count,
+        })
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
+    
 if __name__ == "__main__":
-    app.run(port=3000, debug=True)
+    app.run(port=5001, debug=True)
+
+
