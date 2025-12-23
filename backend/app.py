@@ -1,20 +1,7 @@
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify
 import json
-from flask_sqlalchemy import SQLAlchemy
 from github import Github
-from dotenv import load_dotenv
-from models import db
-import os
-
-load_dotenv()
-
-app = Flask(__name__)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Init db with app
-db.init_app(app)
+from db import db, app
 
 g = Github()
 
