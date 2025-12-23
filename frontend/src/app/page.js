@@ -4,7 +4,7 @@ export default function Index() {
   return (
     <div>
       <div className="flex justify-center">
-        <h1>AI Code Review Assistant</h1>
+        <div className="font-bold text-[24px]">AI Code Review Assistant</div>
       </div>
     </div>
   );
