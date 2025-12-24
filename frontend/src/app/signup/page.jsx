@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import axios from "axios";
+import Link from "next/link";
 
 
 const SignUp = () => {
@@ -15,9 +17,24 @@ const SignUp = () => {
         setPassword(e.target.value);
     };
 
-    // Implement the Login Route and Button
-    const onSignUpClick = () => {
+    // Implement the Signup Route and Button
+    const onSignUpClick = async () => {
+        if (username === "" || password === ""){
+            alert("Please make sure to enter a username and password!")
+            return;
+        }
 
+        try {
+            const response = await axios.post('http://localhost:5001/signup', {
+                username: username,
+                password: password,
+            });
+            console.log(response);
+        }
+        catch(error){
+            console.error(error);
+            alert(error.response.data.message);
+        }
     };
 
     return (
@@ -31,12 +48,12 @@ const SignUp = () => {
 
                         <label>Password:</label>
                         <input className="border px-2 py-1" type="password" value={password} onChange={handlePasswordChange}></input> 
-                        
-                        <div className="col-span-2 flex justify-center mt-2">
-                            <input className="px-8 py-2 border border-gray-700 rounded-2xl bg-gray-400 cursor-pointer hover:bg-gray-500" type="submit"></input>
-                        </div>
+                         
                     </form>
-                    <a className="cursor-pointer pt-5" href="/login">Login</a>
+                    <div className="col-span-2 flex justify-center mt-2">
+                        <button className="px-8 py-2 border border-gray-700 rounded-2xl bg-gray-400 cursor-pointer hover:bg-gray-500" onClick={onSignUpClick}>Sign Up</button>
+                    </div>
+                    <Link className="cursor-pointer pt-5 text-blue-600 underline hover:text-blue-800" href="/login">Already have an account? Login</Link>
                 </div> 
             </div>
         </div>

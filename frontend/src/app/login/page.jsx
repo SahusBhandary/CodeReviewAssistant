@@ -30,13 +30,12 @@ const Login = () => {
                         <input className="border px-2 py-1" type="text" value={username} onChange={handleUsernameChange}></input> 
 
                         <label>Password:</label>
-                        <input className="border px-2 py-1" type="password" value={password} onChange={handlePasswordChange}></input> 
-                        
-                        <div className="col-span-2 flex justify-center mt-2">
-                            <input className="px-8 py-2 border border-gray-700 rounded-2xl bg-gray-400 cursor-pointer hover:bg-gray-500" type="submit"></input>
-                        </div>
+                        <input className="border px-2 py-1" type="password" value={password} onChange={handlePasswordChange}></input>   
                     </form>
-                    <a className="cursor-pointer pt-5" href="/signup">Sign Up</a>
+                    <div className="col-span-2 flex justify-center mt-2">
+                        <button className="px-8 py-2 border border-gray-700 rounded-2xl bg-gray-400 cursor-pointer hover:bg-gray-500" onClick={onLoginClick}>Login</button>
+                    </div>
+                    <a className="cursor-pointer pt-5 text-blue-600 underline hover:text-blue-800" href="/signup">Don't have an account? Sign Up</a>
                 </div> 
             </div>
         </div>

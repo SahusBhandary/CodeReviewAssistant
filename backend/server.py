@@ -3,6 +3,8 @@ import json
 from github import Github
 from app import db, app
 from models import UserModel
+import bcrypt
+from sqlalchemy.exc import IntegrityError
 
 g = Github()
 
@@ -17,15 +19,64 @@ Expected Outcome:
     - User attempts to sign up
     - If the username is already taken, send an error message
     - Uploads the username and password to the db
+    - Creates a session token for the user
 
 Returns: 
     - 200 on success and returns a session token to the frontend
-    - 404 on failure  
+    - 400 on failure  
 """
-@app.route('/signup', methods=['GET'])
+@app.route('/signup', methods=['POST'])
 def signup():
     payload = request.json
-    print(payload)
+    username = payload['username']
+    password = payload['password']
+    
+    # Password Hashing
+
+    # Encode the password to an array of bytes
+    bytes = password.encode('utf-8')
+
+    # generating the salt
+    salt = bcrypt.gensalt()
+
+    # Hashing the password
+    password_hash = bcrypt.hashpw(bytes, salt)
+
+    try:
+        # Upload data to the db
+        new_user = UserModel(
+            username=username,
+            password=password_hash,
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"status": "received"}), 200
+    except IntegrityError as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": "Username already exists!"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+    
+"""
+Route to log in a user
+
+Args: 
+    - Username 
+    - Password
+
+Expected Outcome:
+    - User attempts to login
+    - If the username does not exist, return error
+    - If the password does not match, return error
+    - Generate session token and send to frontend
+    
+Returns: 
+    - 200 on success and returns a session token to the frontend
+    - 400 on failure  
+"""
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
