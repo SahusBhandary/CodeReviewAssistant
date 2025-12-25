@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import json
 from github import Github
 from app import db, app
 from models import UserModel
 import bcrypt
 from sqlalchemy.exc import IntegrityError
+import jwt
+from datetime import datetime, timezone, timedelta
 
 g = Github()
 
@@ -19,13 +21,12 @@ Expected Outcome:
     - User attempts to sign up
     - If the username is already taken, send an error message
     - Uploads the username and password to the db
-    - Creates a session token for the user
 
 Returns: 
-    - 200 on success and returns a session token to the frontend
+    - 200 on success
     - 400 on failure  
 """
-@app.route('/signup', methods=['POST'])
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
     payload = request.json
     username = payload['username']
@@ -72,11 +73,84 @@ Expected Outcome:
     - If the username does not exist, return error
     - If the password does not match, return error
     - Generate session token and send to frontend
-    
+
 Returns: 
     - 200 on success and returns a session token to the frontend
     - 400 on failure  
 """
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    payload = request.json
+    username = payload['username']
+    password = payload['password']
+
+    try:
+        user = UserModel.query.filter_by(username=username).one()  
+        user_hash = user.password
+        password_bytes = password.encode('utf-8')
+
+        # Check if the password entered was correct
+        if not bcrypt.checkpw(password_bytes, user_hash):
+            return jsonify({"status": "error", "message": "Incorrect Username or Password!"}), 400
+        
+        # Generate token
+        token = jwt.encode({'username': user.username, 'exp': datetime.now(timezone.utc) + timedelta(hours=1)}, 
+                           app.config['SECRET_KEY'], algorithm="HS256")
+
+        # Create Response
+        response = make_response(jsonify({"status": "received", "token": token}), 200)
+
+        response.set_cookie(
+            'auth_token',
+            token,
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=3600,
+        )
+
+        return response
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({"status": "error", "message": "Incorrect Username or Password!"}), 400
+    
+# Route to get user data from cookie
+@app.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    # Get token from request data
+    token = request.cookies.get('auth_token')
+    if not token:
+        return jsonify({"status": "error", "message": "User not found!"}), 401
+    
+    # Extract data from token
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        user = UserModel.query.filter_by(username=data['username']).first()
+
+        return jsonify({
+            "username": user.username, 
+        }), 200
+    
+    except Exception as e:
+        return jsonify({"status": "error", "message": "User not found!"}), 401
+
+# Logout User
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    response = make_response(jsonify({"status": "success", "message": "Logged out successfully"}), 200)
+
+
+    # Clear the auth_token cookie by setting it to expire immediately
+    response.set_cookie(
+        'auth_token',
+        '',
+        httponly=True,
+        secure=False,
+        samesite='Lax',
+        max_age=0 
+    )
+    
+    return response
 
 @app.route('/webhook', methods=['POST'])
 def webhook():

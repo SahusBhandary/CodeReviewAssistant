@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 
 const SignUp = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const router = useRouter();
 
     const handleUsernameChange = (e) => {
         setUsername(e.target.value);
@@ -29,7 +31,11 @@ const SignUp = () => {
                 username: username,
                 password: password,
             });
-            console.log(response);
+            
+            // On success, send user to login page
+            if (response.status == 200){
+                router.push('/login');
+            }
         }
         catch(error){
             console.error(error);
