@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 
 
 const Login = () => {
+    const { fetchUser } = useUser();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const router = useRouter();
@@ -29,11 +31,15 @@ const Login = () => {
             const response = await axios.post('http://localhost:5001/login', {
                 username: username,
                 password: password,
+            }, {
+                withCredentials: true,
             });
             
             // On success, send user to login page
             if (response.status == 200){
+                await fetchUser();
                 router.push('/');
+                
             }
         }
         catch(error){

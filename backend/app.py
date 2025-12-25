@@ -9,9 +9,13 @@ load_dotenv()
 
 # Set up db connection (thru postgres)
 app = Flask(__name__)
-cors = CORS(app,
-            origins=["http://localhost:3000"],
-            supports_credentials=True,) 
+CORS(app,
+     origins=["http://localhost:3000"],
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     expose_headers=["Set-Cookie"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')

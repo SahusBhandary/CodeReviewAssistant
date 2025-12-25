@@ -106,7 +106,7 @@ def login():
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=3600
+            max_age=3600,
         )
 
         return response
@@ -134,6 +134,23 @@ def get_user_data():
     except Exception as e:
         return jsonify({"status": "error", "message": "User not found!"}), 401
 
+# Logout User
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    response = make_response(jsonify({"status": "success", "message": "Logged out successfully"}), 200)
+
+
+    # Clear the auth_token cookie by setting it to expire immediately
+    response.set_cookie(
+        'auth_token',
+        '',
+        httponly=True,
+        secure=False,
+        samesite='Lax',
+        max_age=0 
+    )
+    
+    return response
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
