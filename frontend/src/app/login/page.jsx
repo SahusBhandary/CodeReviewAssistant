@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const router = useRouter();
 
     const handleUsernameChange = (e) => {
         setUsername(e.target.value);
@@ -16,8 +19,27 @@ const Login = () => {
     };
 
     // Implement the Login Route and Button
-    const onLoginClick = () => {
+    const onLoginClick = async () => {
+        if (username === "" || password === ""){
+            alert("Please make sure to enter a username and password!")
+            return;
+        }
 
+        try {
+            const response = await axios.post('http://localhost:5001/login', {
+                username: username,
+                password: password,
+            });
+            
+            // On success, send user to login page
+            if (response.status == 200){
+                router.push('/');
+            }
+        }
+        catch(error){
+            console.error(error);
+            alert(error.response.data.message);
+        }
     };
 
     return (

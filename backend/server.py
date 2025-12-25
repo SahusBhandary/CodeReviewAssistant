@@ -19,10 +19,9 @@ Expected Outcome:
     - User attempts to sign up
     - If the username is already taken, send an error message
     - Uploads the username and password to the db
-    - Creates a session token for the user
 
 Returns: 
-    - 200 on success and returns a session token to the frontend
+    - 200 on success
     - 400 on failure  
 """
 @app.route('/signup', methods=['POST'])
@@ -72,11 +71,29 @@ Expected Outcome:
     - If the username does not exist, return error
     - If the password does not match, return error
     - Generate session token and send to frontend
-    
+
 Returns: 
     - 200 on success and returns a session token to the frontend
     - 400 on failure  
 """
+@app.route('/login', methods=['POST'])
+def login():
+    payload = request.json
+    username = payload['username']
+    password = payload['password']
+
+    try:
+        user = UserModel.query.filter_by(username=username).one()  
+        user_hash = user.password
+        password_bytes = password.encode('utf-8')
+
+        if not bcrypt.checkpw(password_bytes, user_hash):
+            return jsonify({"status": "error", "message": "Incorrect Username or Password!"}), 400
+
+        return jsonify({"status": "received"}), 200
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({"status": "error", "message": "Incorrect Username or Password!"}), 400
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
