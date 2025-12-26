@@ -8,7 +8,7 @@ const Repos = () => {
     const [ ifDialog, setIsDialog ] = useState(false);
     const [ owner, setOwner ] = useState('');
     const [ repoName, setRepoName ] = useState('');
-    const { user } = useUser();
+    const { user, repos, fetchUser } = useUser();
 
     const handleOwnerChange = (e) => {
         setOwner(e.target.value);
@@ -28,7 +28,9 @@ const Repos = () => {
             const response = await axios.post(`http://localhost:5001/repo/${owner}/${repoName}`, {
                 username: user.username,
             });
-            console.log(response);
+
+            await fetchUser();
+            setIsDialog(false);
         }
         catch(error){
             console.error("Error:",error);
@@ -40,6 +42,14 @@ const Repos = () => {
     return (
         <div>
             <div className="flex justify-center text-2xl font-bold py-5">Repositories</div>
+            <div className="flex justify-center pb-5">
+                <ul>
+                    {repos.map((repo) => (
+                        <li className="border p-2 m-2" key={repo.id + repo.repo_name}>{repo.repo_name}</li>    
+                    ))}
+                </ul>
+                
+            </div>
             <div className="flex justify-center">
                 <button className="border-2 p-2 cursor-pointer" onClick={() => setIsDialog(true)}>+ Add Repository</button>
             </div>

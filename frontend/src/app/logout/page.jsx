@@ -11,7 +11,7 @@ const Logout = () => {
 
     useEffect(() => {
         handleLogout();
-    }, [router, fetchUser])
+    }, [])
 
     const handleLogout = async () => {
         try{

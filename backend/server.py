@@ -127,8 +127,17 @@ def get_user_data():
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
         user = UserModel.query.filter_by(username=data['username']).first()
 
+        repos_list = [
+            {
+                'id': repo.id,
+                'repo_name': repo.repo_name,
+                'description': repo.description
+            }
+            for repo in user.repos
+        ]
         return jsonify({
             "username": user.username, 
+            "repos": repos_list,
         }), 200
     
     except Exception as e:
@@ -138,7 +147,6 @@ def get_user_data():
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     response = make_response(jsonify({"status": "success", "message": "Logged out successfully"}), 200)
-
 
     # Clear the auth_token cookie by setting it to expire immediately
     response.set_cookie(
@@ -152,11 +160,11 @@ def logout():
     
     return response
 
+# Get Repo Info and associate it with a user
 @app.route('/repo/<owner>/<repo>', methods=['GET', 'POST'])
 def get_repo_info(owner, repo):
     data = request.json
     username = data['username']
-    print(username)
 
     try:
         repo = g.get_repo(f"{owner}/{repo}")
@@ -167,7 +175,7 @@ def get_repo_info(owner, repo):
             description = repo.description,
         )
         
-        user = UserModel.query.filter_by(username=data['username']).first()
+        user = UserModel.query.filter_by(username=username).first()
         
         user.repos.append(new_repo)
         db.session.commit()

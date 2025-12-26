@@ -7,6 +7,7 @@ const UserContext = createContext();
 
 export function UserProvider({ children }){
     const [ user, setUser ] = useState(null);
+    const [ repos, setRepos ] = useState([]);
     const [ loading, setLoading ] = useState(true);
 
     useEffect(() => {
@@ -16,21 +17,24 @@ export function UserProvider({ children }){
     // Get user from cookie
     const fetchUser = async () => {
         try{
-            const response = await axios('http://localhost:5001/get_user_data', {
+            const response = await axios.get('http://localhost:5001/get_user_data', {
                 withCredentials: true 
             });
     
             if (response.status == 200){
                 const data = response.data;
                 setUser(data);
+                setRepos(data.repos);
             }
             else{
                 setUser(null);
+                setRepos([]);
             }
         }
         catch (error){
-            console.error("Error:", error);
+            console.log("Error:", error);
             setUser(null);
+            setRepos([]);
         }
         finally {
             setLoading(false);
@@ -38,7 +42,7 @@ export function UserProvider({ children }){
     }
 
     return (
-        <UserContext.Provider value={{ user, loading, fetchUser }}>
+        <UserContext.Provider value={{ user, repos, loading, fetchUser }}>
             {children}
         </UserContext.Provider>
     )
