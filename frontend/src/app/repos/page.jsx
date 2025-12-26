@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import axios from "axios";
+import { useUser } from "@/context/UserContext";
 
 const Repos = () => {
     const [ ifDialog, setIsDialog ] = useState(false);
     const [ owner, setOwner ] = useState('');
     const [ repoName, setRepoName ] = useState('');
+    const { user } = useUser();
 
     const handleOwnerChange = (e) => {
         setOwner(e.target.value);
@@ -23,7 +25,9 @@ const Repos = () => {
         }
 
         try{
-            const response = await axios.get(`http://localhost:5001/repo/${owner}/${repoName}`);
+            const response = await axios.post(`http://localhost:5001/repo/${owner}/${repoName}`, {
+                username: user.username,
+            });
             console.log(response);
         }
         catch(error){

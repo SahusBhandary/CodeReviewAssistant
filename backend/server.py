@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, make_response
 import json
 from github import Github
 from app import db, app
-from models import UserModel
+from models import UserModel, RepoModel
 import bcrypt
 from sqlalchemy.exc import IntegrityError
 import jwt
@@ -152,6 +152,35 @@ def logout():
     
     return response
 
+@app.route('/repo/<owner>/<repo>', methods=['GET', 'POST'])
+def get_repo_info(owner, repo):
+    data = request.json
+    username = data['username']
+    print(username)
+
+    try:
+        repo = g.get_repo(f"{owner}/{repo}")
+        
+        # Send to db
+        new_repo = RepoModel(
+            repo_name = repo.name,
+            description = repo.description,
+        )
+        
+        user = UserModel.query.filter_by(username=data['username']).first()
+        
+        user.repos.append(new_repo)
+        db.session.commit()
+
+        return jsonify({
+            'name': repo.name,
+            'description': repo.description,
+            'stars': repo.stargazers_count,
+            'forks': repo.forks_count,
+        })
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     # Get the payload and headers from the request
@@ -167,19 +196,6 @@ def webhook():
     # If successful push, then we get the new file contents and feed it to the Chatbot
 
     return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
-
-@app.route('/repo/<owner>/<repo>', methods=['GET'])
-def get_repo_info(owner, repo):
-    try:
-        repo = g.get_repo(f"{owner}/{repo}")
-        return jsonify({
-            'name': repo.name,
-            'description': repo.description,
-            'stars': repo.stargazers_count,
-            'forks': repo.forks_count,
-        })
-    except Exception as e:
-        return jsonify({"error" : str(e)}), 404
 
     
 if __name__ == "__main__":
