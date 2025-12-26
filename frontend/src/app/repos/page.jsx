@@ -1,0 +1,77 @@
+'use client';
+
+import { useState } from "react";
+import axios from "axios";
+
+const Repos = () => {
+    const [ ifDialog, setIsDialog ] = useState(false);
+    const [ owner, setOwner ] = useState('');
+    const [ repoName, setRepoName ] = useState('');
+
+    const handleOwnerChange = (e) => {
+        setOwner(e.target.value);
+    }
+
+    const handleRepoNameChange = (e) => {
+        setRepoName(e.target.value);
+    }
+
+    const onAddRepoClick = async () => {
+        if (owner == "" || repoName == ""){
+            alert("Must enter an owner and repo name!");
+            return;
+        }
+
+        try{
+            const response = await axios.get(`http://localhost:5001/repo/${owner}/${repoName}`);
+            console.log(response);
+        }
+        catch(error){
+            console.error("Error:",error);
+            return;
+        }
+        
+    }
+
+    return (
+        <div>
+            <div className="flex justify-center text-2xl font-bold py-5">Repositories</div>
+            <div className="flex justify-center">
+                <button className="border-2 p-2 cursor-pointer" onClick={() => setIsDialog(true)}>+ Add Repository</button>
+            </div>
+            {ifDialog && 
+                <>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white max-w-2xl w-full">
+                            <div className="flex items-center justify-between p-6 border-b">
+                                <h2 className="text-xl font-semibold">Add Repository</h2>
+                                <button
+                                    onClick={() => setIsDialog(false)}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none cursor-pointer"
+                                >
+                                    x
+                                </button>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <form className="grid grid-cols-[auto_1fr] gap-2 items-center p-5">
+                                    <label>Owner</label>
+                                    <input className="border rounded-2xl" type="text" value={owner} onChange={handleOwnerChange}></input>
+
+                                    <label>Repo Name</label>
+                                    <input className="border rounded-2xl" type="text" value={repoName} onChange={handleRepoNameChange}></input>
+                                </form>
+                                <button className="border-2 p-2 cursor-pointer mb-2" onClick={onAddRepoClick}>
+                                    Add Repo
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                </> 
+            }
+        </div>
+    )
+}
+
+export default Repos;
