@@ -106,7 +106,7 @@ def login():
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=3600,
+            max_age=(24 * 3600),
         )
 
         return response
@@ -130,6 +130,7 @@ def get_user_data():
         repos_list = [
             {
                 'id': repo.id,
+                'owner': repo.owner,
                 'repo_name': repo.repo_name,
                 'description': repo.description
             }
@@ -161,8 +162,8 @@ def logout():
     return response
 
 # Get Repo Info and associate it with a user
-@app.route('/repo/<owner>/<repo>', methods=['GET', 'POST'])
-def get_repo_info(owner, repo):
+@app.route('/add_repo/<owner>/<repo>', methods=['GET', 'POST'])
+def add_repo(owner, repo):
     data = request.json
     username = data['username']
 
@@ -171,6 +172,7 @@ def get_repo_info(owner, repo):
         
         # Send to db
         new_repo = RepoModel(
+            owner = owner,
             repo_name = repo.name,
             description = repo.description,
         )
@@ -181,11 +183,47 @@ def get_repo_info(owner, repo):
         db.session.commit()
 
         return jsonify({
+            'owner': owner,
             'name': repo.name,
             'description': repo.description,
-            'stars': repo.stargazers_count,
-            'forks': repo.forks_count,
         })
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
+@app.route('/get_repo_content/<owner>/<repo>', methods=['GET', 'POST'])
+def get_repo_files(owner, repo):
+    data = request.json
+    username = data['username']
+    path = '/'.join(data.get('content', []))
+
+    try:
+        # Check if user has this repo added
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo
+        ).join(RepoModel.UserModel).filter(
+            UserModel.username == username
+        ).first()
+
+        if not existing_repo:
+            return jsonify({"status": "error", "message": "User does not have repo added!"})
+
+        repo = g.get_repo(f"{owner}/{repo}")
+        contents = repo.get_contents(path)
+        root_content = []
+        for content_file in contents:
+            print(content_file)
+            root_content.append({
+                'name': content_file.name,
+                'path': content_file.path,
+                'type': content_file.type, 
+                'size': content_file.size,
+                'sha': content_file.sha,
+                'url': content_file.html_url,
+                'download_url': content_file.download_url if content_file.type == 'file' else None
+            })
+
+        return jsonify({"status": "received", "contents": root_content}), 200
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
 

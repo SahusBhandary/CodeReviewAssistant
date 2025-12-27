@@ -3,12 +3,14 @@
 import { useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
+import { useRouter } from "next/navigation";
 
 const Repos = () => {
     const [ ifDialog, setIsDialog ] = useState(false);
     const [ owner, setOwner ] = useState('');
     const [ repoName, setRepoName ] = useState('');
     const { user, repos, fetchUser } = useUser();
+    const router = useRouter();
 
     const handleOwnerChange = (e) => {
         setOwner(e.target.value);
@@ -25,7 +27,7 @@ const Repos = () => {
         }
 
         try{
-            const response = await axios.post(`http://localhost:5001/repo/${owner}/${repoName}`, {
+            const response = await axios.post(`http://localhost:5001/add_repo/${owner}/${repoName}`, {
                 username: user.username,
             });
 
@@ -39,13 +41,25 @@ const Repos = () => {
         
     }
 
+    // Function for selecting a repository
+    const onRepoClick = async (repoOwner, repoName) => {
+        router.push(`/repos/${repoOwner}/${repoName}`)
+        
+    }
+
     return (
         <div>
             <div className="flex justify-center text-2xl font-bold py-5">Repositories</div>
             <div className="flex justify-center pb-5">
                 <ul>
                     {repos.map((repo) => (
-                        <li className="border p-2 m-2" key={repo.id + repo.repo_name}>{repo.repo_name}</li>    
+                        <li 
+                            className="border p-2 m-2" 
+                            key={repo.id + repo.repo_name}
+                            onClick={() => onRepoClick(repo.owner, repo.repo_name)}
+                        >
+                            {repo.owner + "-" + repo.repo_name}
+                        </li>    
                     ))}
                 </ul>
                 

@@ -21,6 +21,7 @@ class RepoModel(db.Model):
     __tablename__ = 'repos'
 
     id = db.Column(db.Integer, primary_key=True)
+    owner = db.Column(db.String(100), nullable=False)
     repo_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, default='')
 
