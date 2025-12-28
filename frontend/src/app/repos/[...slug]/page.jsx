@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 const RepoView = () => {
     const params = useParams();
@@ -11,6 +12,7 @@ const RepoView = () => {
     const { user, loading } = useUser();
     const [ repoContent, setRepoContent ] = useState([]);
     const [ repoLoading, setRepoLoading ] = useState(true);
+    const [connected, setConnected] = useState(false);
 
     // Parse params
     const { slug } = params;
@@ -24,6 +26,24 @@ const RepoView = () => {
             fetchRepoContent();
         }
     }, [loading, user, owner, repo]);
+
+    // Webhook 
+    useEffect(() => {
+        // Connect to Flask backend
+        const socket = io('http://localhost:5001');
+        
+        // Join a room
+        socket.on('connect', () => {
+            console.log("Connected to server");
+            socket.emit('join', {room: repo})
+        });
+        
+        socket.on('webhook-received', (data) => {
+            console.log('Webhook data received:', data);
+        });
+
+        return () => socket.disconnect();
+    }, []);
 
     const fetchRepoContent = async () => {
         try {

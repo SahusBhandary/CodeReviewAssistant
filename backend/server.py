@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, make_response
 import json
 from github import Github
-from app import db, app
+from app import db, app, socketio
 from models import UserModel, RepoModel
 import bcrypt
 from sqlalchemy.exc import IntegrityError
 import jwt
 from datetime import datetime, timezone, timedelta
+from flask_socketio import join_room, leave_room
 
 g = Github()
 
@@ -190,6 +191,7 @@ def add_repo(owner, repo):
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
 
+# Get repo content based on frontend url
 @app.route('/get_repo_content/<owner>/<repo>', methods=['GET', 'POST'])
 def get_repo_files(owner, repo):
     data = request.json
@@ -212,7 +214,6 @@ def get_repo_files(owner, repo):
         contents = repo.get_contents(path)
         root_content = []
         for content_file in contents:
-            print(content_file)
             root_content.append({
                 'name': content_file.name,
                 'path': content_file.path,
@@ -227,6 +228,13 @@ def get_repo_files(owner, repo):
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
 
+# Organize the repos into 'rooms'
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+    print("Client joined room:",room) 
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     # Get the payload and headers from the request
@@ -236,18 +244,15 @@ def webhook():
     repo_name = payload_data['repository']['name']
     owner_name = payload_data['repository']['owner']['login']
 
-    print(repo_name)
-    print(owner_name)
-
     # If successful push, then we get the new file contents and feed it to the Chatbot
+    socketio.emit('webhook-received', payload, room=repo_name)
 
     return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
-
     
 if __name__ == "__main__":
     # Create tables
     with app.app_context():
         db.create_all()  
-    app.run(port=5001, debug=True)
+    socketio.run(app, port=5001, debug=True)
 
 
