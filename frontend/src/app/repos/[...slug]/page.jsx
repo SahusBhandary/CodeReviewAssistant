@@ -12,7 +12,7 @@ const RepoView = () => {
     const { user, loading } = useUser();
     const [ repoContent, setRepoContent ] = useState([]);
     const [ repoLoading, setRepoLoading ] = useState(true);
-    const [connected, setConnected] = useState(false);
+    const [ webhookData, setWebhookData ] = useState(null);
 
     // Parse params
     const { slug } = params;
@@ -40,10 +40,15 @@ const RepoView = () => {
         
         socket.on('webhook-received', (data) => {
             console.log('Webhook data received:', data);
+            setWebhookData(data);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected');
         });
 
         return () => socket.disconnect();
-    }, []);
+    }, [repo]);
 
     const fetchRepoContent = async () => {
         try {
@@ -80,6 +85,11 @@ const RepoView = () => {
         <>
             <div className='flex flex-col'>
                 <div className='flex justify-center font-bold text-xl m-5'>{owner + "-" + repo}</div>
+                {webhookData && 
+                    <div className='flex justify-center'>
+                        <button className='border p-2 cursor-pointer' onClick={() => window.location.reload()}>New Push Made, Click to Refresh</button>
+                    </div>
+                }
                 {!repoLoading ?
                     <ul>
                         {repoContent.map((cont, index) => (

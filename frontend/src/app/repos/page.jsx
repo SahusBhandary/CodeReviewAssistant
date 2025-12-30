@@ -44,7 +44,6 @@ const Repos = () => {
     // Function for selecting a repository
     const onRepoClick = async (repoOwner, repoName) => {
         router.push(`/repos/${repoOwner}/${repoName}`)
-        
     }
 
     return (

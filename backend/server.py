@@ -233,7 +233,6 @@ def get_repo_files(owner, repo):
 def on_join(data):
     room = data['room']
     join_room(room)
-    print("Client joined room:",room) 
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
