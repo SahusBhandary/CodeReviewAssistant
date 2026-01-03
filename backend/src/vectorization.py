@@ -26,7 +26,6 @@ ids = []
 documents = []
 
 for i, chunk in enumerate(chunks):
-    print(chunk)
     document = Document(
         page_content = chunk['content'],
         metadata = chunk['metadata']
@@ -35,7 +34,8 @@ for i, chunk in enumerate(chunks):
     ids.append(str(i+1))
     documents.append(document)
 
-vector_store.add_documents(documents=documents, ids=ids)
+if exists:
+    vector_store.add_documents(documents=documents, ids=ids)
 
 retriever = vector_store.as_retriever(
     search_kwargs = {'k': 5}
