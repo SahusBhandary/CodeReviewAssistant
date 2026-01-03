@@ -1,22 +1,23 @@
-from langchain_ollama.llms import OllamaLLM
-from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
+from vectorization import retriever
+from app import model
 
-# Initialize the models
-model = OllamaLLM(model="qwen2.5-coder:7b")
-embedding_model = OllamaEmbeddings(model="mxbai-embed-large:latest")
+template = """
+    You are a code review chat bot, that is responsible for informing users about their code bases
 
-# template = """
-#     You are a code review assistant tasked with helping users improve their code. You will be given a series of changes a user has made and to one or multiple files in their codebase. You will then be given relevant files related to that change if they exist. Your task will be to find any potential bugs in the code, security threats with the current change and other components, and any architectural improvements that can be made to the code. 
+    Here is some relevant files based off the question: {files}
 
-#     Here are relevant files you can use: {files}
+    Here is the question: {question}
+"""
 
-#     Here are the changes made: {diff}
-# """
+prompt = ChatPromptTemplate.from_template(template)
+chain = prompt | model
 
-# prompt = ChatPromptTemplate.from_template(template)
-# chain = prompt | model
-# result = chain.invoke({"files": [], "diff": "print('hello world')"})
+question = input("Ask a question about the repo: ")
+print("\n")
+files = retriever.invoke(question)
+result = chain.invoke({"files": files, "question": question})
+print(result)
 
 
 # Ollama Test

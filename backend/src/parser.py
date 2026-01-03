@@ -1,16 +1,13 @@
 from typing import Generator
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser, Tree, Node
-from github import Github
-
-g = Github()
 
 class PythonLanguage:
     def __init__(self):
         self.name = 'Python'
         self.language = Language(tspython.language())
         self.wanted_nodes = ['function_definition', 'class_definition'] 
-        self.metadata_nodes = ['decorated_definition', 'import_statement', 'import_from_statement']
+        self.metadata_nodes = ['decorated_definition', 'import_statement', 'import_from_statement'] # ***Implement later
 
 class FileParser:
     def __init__(self):
@@ -19,7 +16,8 @@ class FileParser:
             '.py' : PythonLanguage()
         }
     
-    def parse_file(self, file_content, file_path, file_extension):
+    # Reduce parameters
+    def parse_file(self, file_content, file_path, file_extension, repo_name, repo_url):
 
         def traverse_tree(tree: Tree) -> Generator[Node, None, None]:
             cursor = tree.walk()
@@ -54,30 +52,21 @@ class FileParser:
                 chunk = {
                     'content': node.text.decode('utf-8'),
                     'metadata': {
+                        'repo_name': repo_name,
+                        'repo_url': repo_url,
                         'type': node.type,
                         'name': name,
                         'file_path': file_path,
-                        'start': node.start_point,
-                        'end': node.end_point,
+                        'start': str(node.start_point.row),
+                        'end': str(node.end_point.row),
                     }
                 }
                 chunks.append(chunk)
-        
         return chunks
         
 
 
-file_content = ""
 
-repo = g.get_repo(f"SahusBhandary-Student/test_repo")
-contents = repo.get_contents('')
-root_content = []
-for content_file in contents:
-    if content_file.type == 'file' and content_file.name == 'test_chunker.py':
-        file_content = content_file.decoded_content.decode()
-
-parser = FileParser()
-parser.parse_file(file_content, 'test_chunker.py', '.py')
 
 
 

@@ -4,6 +4,9 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO
+from langchain_ollama.llms import OllamaLLM
+from langchain_ollama.embeddings import OllamaEmbeddings
+from langchain_chroma import Chroma
 
 # Load env file
 load_dotenv()
@@ -26,3 +29,17 @@ db = SQLAlchemy(app)
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize vector store, model, and embedding model
+
+# Initialize the models
+model = OllamaLLM(model="qwen2.5-coder:7b")
+embedding_model = OllamaEmbeddings(model="mxbai-embed-large:latest")
+
+# Initialize Vector Store
+vector_store = Chroma(
+    collection_name="repos_db",
+    embedding_function=embedding_model,
+    persist_directory="../code_review_db",
+)
+
