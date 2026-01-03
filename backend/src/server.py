@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, make_response
 import json
 from github import Github
-from app import db, app
+from app import db, app, socketio
 from models import UserModel, RepoModel
 import bcrypt
 from sqlalchemy.exc import IntegrityError
 import jwt
 from datetime import datetime, timezone, timedelta
+from flask_socketio import join_room, leave_room
 
 g = Github()
 
@@ -106,7 +107,7 @@ def login():
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=3600,
+            max_age=(24 * 3600),
         )
 
         return response
@@ -127,8 +128,18 @@ def get_user_data():
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
         user = UserModel.query.filter_by(username=data['username']).first()
 
+        repos_list = [
+            {
+                'id': repo.id,
+                'owner': repo.owner,
+                'repo_name': repo.repo_name,
+                'description': repo.description
+            }
+            for repo in user.repos
+        ]
         return jsonify({
             "username": user.username, 
+            "repos": repos_list,
         }), 200
     
     except Exception as e:
@@ -138,7 +149,6 @@ def get_user_data():
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     response = make_response(jsonify({"status": "success", "message": "Logged out successfully"}), 200)
-
 
     # Clear the auth_token cookie by setting it to expire immediately
     response.set_cookie(
@@ -152,34 +162,77 @@ def logout():
     
     return response
 
-@app.route('/repo/<owner>/<repo>', methods=['GET', 'POST'])
-def get_repo_info(owner, repo):
+# Get Repo Info and associate it with a user
+@app.route('/add_repo/<owner>/<repo>', methods=['GET', 'POST'])
+def add_repo(owner, repo):
     data = request.json
     username = data['username']
-    print(username)
 
     try:
         repo = g.get_repo(f"{owner}/{repo}")
         
         # Send to db
         new_repo = RepoModel(
+            owner = owner,
             repo_name = repo.name,
             description = repo.description,
         )
         
-        user = UserModel.query.filter_by(username=data['username']).first()
+        user = UserModel.query.filter_by(username=username).first()
         
         user.repos.append(new_repo)
         db.session.commit()
 
         return jsonify({
+            'owner': owner,
             'name': repo.name,
             'description': repo.description,
-            'stars': repo.stargazers_count,
-            'forks': repo.forks_count,
         })
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
+
+# Get repo content based on frontend url
+@app.route('/get_repo_content/<owner>/<repo>', methods=['GET', 'POST'])
+def get_repo_files(owner, repo):
+    data = request.json
+    username = data['username']
+    path = '/'.join(data.get('content', []))
+
+    try:
+        # Check if user has this repo added
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo
+        ).join(RepoModel.UserModel).filter(
+            UserModel.username == username
+        ).first()
+
+        if not existing_repo:
+            return jsonify({"status": "error", "message": "User does not have repo added!"})
+
+        repo = g.get_repo(f"{owner}/{repo}")
+        contents = repo.get_contents(path)
+        root_content = []
+        for content_file in contents:
+            root_content.append({
+                'name': content_file.name,
+                'path': content_file.path,
+                'type': content_file.type, 
+                'size': content_file.size,
+                'sha': content_file.sha,
+                'url': content_file.html_url,
+                'download_url': content_file.download_url if content_file.type == 'file' else None
+            })
+
+        return jsonify({"status": "received", "contents": root_content}), 200
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
+# Organize the repos into 'rooms'
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -190,18 +243,15 @@ def webhook():
     repo_name = payload_data['repository']['name']
     owner_name = payload_data['repository']['owner']['login']
 
-    print(repo_name)
-    print(owner_name)
-
     # If successful push, then we get the new file contents and feed it to the Chatbot
+    socketio.emit('webhook-received', payload, room=repo_name)
 
     return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
-
     
 if __name__ == "__main__":
     # Create tables
     with app.app_context():
         db.create_all()  
-    app.run(port=5001, debug=True)
+    socketio.run(app, port=5001, debug=True)
 
 

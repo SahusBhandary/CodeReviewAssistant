@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
 from flask_cors import CORS, cross_origin
+from flask_socketio import SocketIO
 
 # Load env file
 load_dotenv()
@@ -20,4 +21,8 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
