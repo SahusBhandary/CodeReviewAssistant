@@ -5,12 +5,6 @@ from github import Github
 
 g = Github()
 
-class Chunk:
-    def __init__(self, content, metadata):
-        self.content = content
-        self.metadata = metadata
-
-
 class PythonLanguage:
     def __init__(self):
         self.name = 'Python'
@@ -69,8 +63,7 @@ class FileParser:
                 }
                 chunks.append(chunk)
         
-        for chunk in chunks:
-            print(chunk)
+        return chunks
         
 
 
