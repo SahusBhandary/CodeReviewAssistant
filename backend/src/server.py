@@ -7,7 +7,8 @@ import bcrypt
 from sqlalchemy.exc import IntegrityError
 import jwt
 from datetime import datetime, timezone, timedelta
-from flask_socketio import join_room, leave_room
+from flask_socketio import join_room
+from vector import vectorize_repo
 
 g = Github()
 
@@ -163,25 +164,53 @@ def logout():
     return response
 
 # Get Repo Info and associate it with a user
-@app.route('/add_repo/<owner>/<repo>', methods=['GET', 'POST'])
-def add_repo(owner, repo):
+@app.route('/add_repo/<owner>/<repo_name>', methods=['GET', 'POST'])
+def add_repo(owner, repo_name):
     data = request.json
     username = data['username']
 
     try:
-        repo = g.get_repo(f"{owner}/{repo}")
+        repo = g.get_repo(f"{owner}/{repo_name}")
+
+        # Check if the repo exists in the db already, if not we create a new db record and vectorize the repo (this means this is the first time we are adding a repo)
+        # Check if the user has the repo
+
+
+        # Check if the repo being added already exists
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo_name,
+        ).first()
+
+        new_repo = existing_repo if existing_repo else None
+
+        # Add repo to db and vectorize ENTIRE repo, first time adding this repo
+        if not existing_repo:
+            # Vectorize repo
+            # vectorize_repo(repo)
         
-        # Send to db
-        new_repo = RepoModel(
-            owner = owner,
-            repo_name = repo.name,
-            description = repo.description,
-        )
+            # Send to db
+            new_repo = RepoModel(
+                owner = owner,
+                repo_name = repo.name,
+                description = repo.description,
+            )
+
+        # Check if user has this repo added
+        existing_user_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo_name
+        ).join(RepoModel.users).filter(
+            UserModel.username == username
+        ).first()
+
+        if not existing_user_repo:
+            user = UserModel.query.filter_by(username=username).first()
         
-        user = UserModel.query.filter_by(username=username).first()
-        
-        user.repos.append(new_repo)
-        db.session.commit()
+            user.repos.append(new_repo)
+            db.session.commit()
+        else:
+            jsonify({"error" : "User has already added this repo!"}), 404
 
         return jsonify({
             'owner': owner,
@@ -203,7 +232,7 @@ def get_repo_files(owner, repo):
         existing_repo = RepoModel.query.filter_by(
             owner=owner,
             repo_name=repo
-        ).join(RepoModel.UserModel).filter(
+        ).join(RepoModel.users).filter(
             UserModel.username == username
         ).first()
 
@@ -227,6 +256,44 @@ def get_repo_files(owner, repo):
         return jsonify({"status": "received", "contents": root_content}), 200
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
+
+# Delete repo from db
+@app.route('/delete_repo/<owner>/<repo>', methods=['POST'])
+def delete_repo(owner, repo):
+    data = request.json
+    username = data['username']
+
+    try:
+        user = UserModel.query.filter_by(username=username).first()
+
+        # Check if the user has this repo
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo
+        ).join(RepoModel.users).filter(
+            UserModel.username == username
+        ).first()
+
+        if not existing_repo:
+            return jsonify({"error" : "User does not have this repo added!"}), 404
+
+        user.repos.remove(existing_repo)
+
+        num_users = len(existing_repo.users)
+        print(num_users)
+        
+        # If there are no more users associated with the repo, delete it
+        if not num_users:
+            db.session.delete(existing_repo)
+
+        db.session.commit()
+
+        return jsonify({"status" : "received"}), 200
+
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
+    
 
 # Organize the repos into 'rooms'
 @socketio.on('join')

@@ -15,7 +15,7 @@ class UserModel(db.Model, UserMixin):
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.LargeBinary, nullable=False)
 
-    repos = db.relationship('RepoModel', secondary=user_repos, backref='UserModel')
+    repos = db.relationship('RepoModel', secondary=user_repos, backref='users')
 
 class RepoModel(db.Model):
     __tablename__ = 'repos'

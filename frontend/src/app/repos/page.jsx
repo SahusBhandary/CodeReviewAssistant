@@ -41,6 +41,20 @@ const Repos = () => {
         
     }
 
+    const onDeleteRepoClick = async (repoOwner, repoName) => {
+        try{
+            const response = await axios.post(`http://localhost:5001/delete_repo/${repoOwner}/${repoName}`, {
+                username: user.username,
+            });
+            
+            await fetchUser();
+        }
+        catch(error){
+            console.error("Error:",error);
+            return;
+        }
+    }
+
     // Function for selecting a repository
     const onRepoClick = async (repoOwner, repoName) => {
         router.push(`/repos/${repoOwner}/${repoName}`)
@@ -52,13 +66,23 @@ const Repos = () => {
             <div className="flex justify-center pb-5">
                 <ul>
                     {repos.map((repo) => (
-                        <li 
-                            className="border p-2 m-2" 
+                        <div 
                             key={repo.id + repo.repo_name}
-                            onClick={() => onRepoClick(repo.owner, repo.repo_name)}
+                            className="flex flex-col border p-2 m-2" 
                         >
-                            {repo.owner + "-" + repo.repo_name}
-                        </li>    
+                            <li 
+                                onClick={() => onRepoClick(repo.owner, repo.repo_name)}
+                            >
+                                {repo.owner + "-" + repo.repo_name}
+                                
+                            </li>   
+                            <button 
+                                className="border p-2 cursor-pointer"
+                                onClick={() => onDeleteRepoClick(repo.owner, repo.repo_name)}
+                            >
+                                Delete Repo
+                            </button> 
+                        </div>
                     ))}
                 </ul>
                 

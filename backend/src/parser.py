@@ -7,7 +7,7 @@ class PythonLanguage:
         self.name = 'Python'
         self.language = Language(tspython.language())
         self.wanted_nodes = ['function_definition', 'class_definition'] 
-        self.metadata_nodes = ['decorated_definition', 'import_statement', 'import_from_statement'] # ***Implement later
+        self.metadata_nodes = ['decorated_definition', 'import_statement', 'import_from_statement']
 
 class FileParser:
     def __init__(self):

@@ -1,5 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate
-from vectorization import retriever
+from vector import retriever
 from app import model
 from github import Github
 
@@ -25,7 +25,6 @@ for file in commit.files:
     if file.filename == target_filename:
         diff = file.patch
         break
-
 
 files = retriever.invoke(diff)
 result = chain.invoke({"files": files})
