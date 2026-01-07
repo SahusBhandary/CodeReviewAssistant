@@ -171,10 +171,7 @@ def add_repo(owner, repo_name):
 
     try:
         repo = g.get_repo(f"{owner}/{repo_name}")
-
-        # Check if the repo exists in the db already, if not we create a new db record and vectorize the repo (this means this is the first time we are adding a repo)
-        # Check if the user has the repo
-
+        user = UserModel.query.filter_by(username=username).first()
 
         # Check if the repo being added already exists
         existing_repo = RepoModel.query.filter_by(
@@ -182,35 +179,23 @@ def add_repo(owner, repo_name):
             repo_name=repo_name,
         ).first()
 
-        new_repo = existing_repo if existing_repo else None
-
         # Add repo to db and vectorize ENTIRE repo, first time adding this repo
         if not existing_repo:
-            # Vectorize repo
-            # vectorize_repo(repo)
-        
-            # Send to db
-            new_repo = RepoModel(
+            existing_repo = RepoModel(
                 owner = owner,
                 repo_name = repo.name,
                 description = repo.description,
             )
+            db.session.add(existing_repo)
+
+            # vectorize_repo(repo)
 
         # Check if user has this repo added
-        existing_user_repo = RepoModel.query.filter_by(
-            owner=owner,
-            repo_name=repo_name
-        ).join(RepoModel.users).filter(
-            UserModel.username == username
-        ).first()
-
-        if not existing_user_repo:
-            user = UserModel.query.filter_by(username=username).first()
+        if existing_repo in user.repos:
+            return jsonify({"error" : "User already has repo added!"}), 400
         
-            user.repos.append(new_repo)
-            db.session.commit()
-        else:
-            jsonify({"error" : "User has already added this repo!"}), 404
+        user.repos.append(existing_repo)
+        db.session.commit()
 
         return jsonify({
             'owner': owner,
@@ -218,6 +203,7 @@ def add_repo(owner, repo_name):
             'description': repo.description,
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error" : str(e)}), 404
 
 # Get repo content based on frontend url
