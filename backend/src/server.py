@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 import json
-from github import Github
+from github import Github, Auth
 from app import db, app, socketio
 from models import UserModel, RepoModel
 import bcrypt
@@ -9,8 +9,10 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from flask_socketio import join_room
 from vector import vectorize_repo
+import os
 
-g = Github()
+auth = Auth.Token(os.getenv('GITHUB_TOKEN'))
+g = Github(auth=auth)
 
 """
 Route to sign up a user
@@ -188,7 +190,8 @@ def add_repo(owner, repo_name):
             )
             db.session.add(existing_repo)
 
-            # vectorize_repo(repo)
+            # Vectorize repo
+            vectorize_repo(repo)
 
         # Check if user has this repo added
         if existing_repo in user.repos:
@@ -266,7 +269,6 @@ def delete_repo(owner, repo):
         user.repos.remove(existing_repo)
 
         num_users = len(existing_repo.users)
-        print(num_users)
         
         # If there are no more users associated with the repo, delete it
         if not num_users:

@@ -1,6 +1,7 @@
 from typing import Generator
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser, Tree, Node
+import os
 
 class PythonLanguage:
     def __init__(self):
@@ -17,7 +18,13 @@ class FileParser:
         }
     
     # Reduce parameters
-    def parse_file(self, file_content, file_path, file_extension, repo_name, repo_url):
+    def parse_file(self, file):
+        file_content = file.decoded_content.decode()
+        file_path = file.path
+        file_extension = os.path.splitext(file.path)[1]
+        file_repo = file.repository
+        repo_name = file_repo.full_name
+        repo_url = file_repo.html_url
 
         def traverse_tree(tree: Tree) -> Generator[Node, None, None]:
             cursor = tree.walk()
