@@ -50,12 +50,13 @@ def vectorize_repo(repo):
                     ids.append(str(i+1))
                     documents.append(document)
 
-                retriever = vector_store.as_retriever(
-                    search_kwargs = {'k': 5}
-                )
-      
+                vector_store.add_documents(documents=documents, ids=ids)
+        
+        return vector_store.as_retriever(search_kwargs={"k": 5})
+                
     except Exception as e:
         raise Exception(f"Error parsing contents: {e}")
+
 
 
 
