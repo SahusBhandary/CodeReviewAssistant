@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import ReactMarkdown from 'react-markdown'
 
 const RepoView = () => {
     const params = useParams();
@@ -13,6 +14,7 @@ const RepoView = () => {
     const [ repoContent, setRepoContent ] = useState([]);
     const [ repoLoading, setRepoLoading ] = useState(true);
     const [ webhookData, setWebhookData ] = useState(null);
+    const [ llmResponse, setLLMResponse ] = useState("");
 
     // Parse params
     const { slug } = params;
@@ -41,6 +43,7 @@ const RepoView = () => {
         socket.on('webhook-received', (data) => {
             console.log('Webhook data received:', data);
             setWebhookData(data);
+            setLLMResponse(data.response);
         });
 
         socket.on('disconnect', () => {
@@ -103,6 +106,7 @@ const RepoView = () => {
                         ))}
                     </ul>
                 : <div>Loading...</div>}
+                {llmResponse && <ReactMarkdown>{llmResponse}</ReactMarkdown>}
             </div>
         </>
     )
