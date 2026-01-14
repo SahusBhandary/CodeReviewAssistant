@@ -9,6 +9,7 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from flask_socketio import join_room
 from vector import vectorize_repo
+from llm import get_llm_response
 import os
 
 auth = Auth.Token(os.getenv('GITHUB_TOKEN'))
@@ -297,9 +298,18 @@ def webhook():
     payload_data = json.loads(payload['payload'])
     repo_name = payload_data['repository']['name']
     owner_name = payload_data['repository']['owner']['login']
+    repo = g.get_repo(owner_name + '/' + repo_name)
+
+    commit_id = payload_data.get('after')
+    llm_response = get_llm_response(repo, commit_id)
 
     # If successful push, then we get the new file contents and feed it to the Chatbot
-    socketio.emit('webhook-received', payload, room=repo_name)
+    socketio.emit('webhook-received', {
+        'commit_id': commit_id,
+        'response': llm_response,
+        'repo_name': repo_name,
+        'owner_name': owner_name
+    }, room=repo_name)
 
     return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
     
