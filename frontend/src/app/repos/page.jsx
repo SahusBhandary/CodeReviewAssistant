@@ -63,33 +63,37 @@ const Repos = () => {
     return (
         <div>
             <div className="flex justify-center text-2xl font-bold py-5">Repositories</div>
-            <div className="flex justify-center pb-5">
-                <ul>
-                    {repos.map((repo) => (
-                        <div 
-                            key={repo.id + repo.repo_name}
-                            className="flex flex-col border p-2 m-2" 
-                        >
-                            <li 
-                                onClick={() => onRepoClick(repo.owner, repo.repo_name)}
-                            >
-                                {repo.owner + "-" + repo.repo_name}
-                                
-                            </li>   
-                            <button 
-                                className="border p-2 cursor-pointer"
-                                onClick={() => onDeleteRepoClick(repo.owner, repo.repo_name)}
-                            >
-                                Delete Repo
-                            </button> 
-                        </div>
-                    ))}
-                </ul>
-                
-            </div>
-            <div className="flex justify-center">
-                <button className="border-2 p-2 cursor-pointer" onClick={() => setIsDialog(true)}>+ Add Repository</button>
-            </div>
+            {user ? 
+                <>
+                    <div className="flex justify-center pb-5">
+                        <ul>
+                            {repos.map((repo) => (
+                                <div 
+                                    key={repo.id + repo.repo_name}
+                                    className="flex flex-col border p-2 m-2" 
+                                >
+                                    <li 
+                                        onClick={() => onRepoClick(repo.owner, repo.repo_name)}
+                                    >
+                                        {repo.owner + "-" + repo.repo_name}
+                                    </li>   
+                                    <button 
+                                        className="border p-2 cursor-pointer"
+                                        onClick={() => onDeleteRepoClick(repo.owner, repo.repo_name)}
+                                    >
+                                        Delete Repo
+                                    </button> 
+                                </div>
+                            ))}
+                        </ul>
+                    
+                    </div>
+                    <div className="flex justify-center">
+                        <button className="border-2 p-2 cursor-pointer" onClick={() => setIsDialog(true)}>+ Add Repository</button>
+                    </div> 
+                </>
+            : <div className="flex justify-center">Please log-in!</div>}
+            
             {ifDialog && 
                 <>
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
