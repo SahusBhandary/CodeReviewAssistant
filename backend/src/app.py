@@ -2,8 +2,11 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_socketio import SocketIO
+from langchain_ollama.llms import OllamaLLM
+from langchain_ollama.embeddings import OllamaEmbeddings
+import chromadb
 
 # Load env file
 load_dotenv()
@@ -26,3 +29,13 @@ db = SQLAlchemy(app)
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize vector store, model, and embedding model
+
+# Initialize the models
+model = OllamaLLM(model="qwen2.5-coder:7b")
+embedding_model = OllamaEmbeddings(model="mxbai-embed-large:latest")
+
+# Initialize chroma client
+client = chromadb.PersistentClient('../code_review_client')
+

@@ -1,15 +1,19 @@
 from flask import Flask, request, jsonify, make_response
 import json
-from github import Github
+from github import Github, Auth
 from app import db, app, socketio
 from models import UserModel, RepoModel
 import bcrypt
 from sqlalchemy.exc import IntegrityError
 import jwt
 from datetime import datetime, timezone, timedelta
-from flask_socketio import join_room, leave_room
+from flask_socketio import join_room
+from vector import vectorize_repo
+from llm import get_llm_response
+import os
 
-g = Github()
+auth = Auth.Token(os.getenv('GITHUB_TOKEN'))
+g = Github(auth=auth)
 
 """
 Route to sign up a user
@@ -163,24 +167,38 @@ def logout():
     return response
 
 # Get Repo Info and associate it with a user
-@app.route('/add_repo/<owner>/<repo>', methods=['GET', 'POST'])
-def add_repo(owner, repo):
+@app.route('/add_repo/<owner>/<repo_name>', methods=['GET', 'POST'])
+def add_repo(owner, repo_name):
     data = request.json
     username = data['username']
 
     try:
-        repo = g.get_repo(f"{owner}/{repo}")
-        
-        # Send to db
-        new_repo = RepoModel(
-            owner = owner,
-            repo_name = repo.name,
-            description = repo.description,
-        )
-        
+        repo = g.get_repo(f"{owner}/{repo_name}")
         user = UserModel.query.filter_by(username=username).first()
+
+        # Check if the repo being added already exists
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo_name,
+        ).first()
+
+        # Add repo to db and vectorize ENTIRE repo, first time adding this repo
+        if not existing_repo:
+            existing_repo = RepoModel(
+                owner = owner,
+                repo_name = repo.name,
+                description = repo.description,
+            )
+            db.session.add(existing_repo)
+
+            # Vectorize repo
+            vectorize_repo(repo)
+
+        # Check if user has this repo added
+        if existing_repo in user.repos:
+            return jsonify({"error" : "User already has repo added!"}), 400
         
-        user.repos.append(new_repo)
+        user.repos.append(existing_repo)
         db.session.commit()
 
         return jsonify({
@@ -189,6 +207,7 @@ def add_repo(owner, repo):
             'description': repo.description,
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error" : str(e)}), 404
 
 # Get repo content based on frontend url
@@ -203,7 +222,7 @@ def get_repo_files(owner, repo):
         existing_repo = RepoModel.query.filter_by(
             owner=owner,
             repo_name=repo
-        ).join(RepoModel.UserModel).filter(
+        ).join(RepoModel.users).filter(
             UserModel.username == username
         ).first()
 
@@ -228,6 +247,43 @@ def get_repo_files(owner, repo):
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
 
+# Delete repo from db
+@app.route('/delete_repo/<owner>/<repo>', methods=['POST'])
+def delete_repo(owner, repo):
+    data = request.json
+    username = data['username']
+
+    try:
+        user = UserModel.query.filter_by(username=username).first()
+
+        # Check if the user has this repo
+        existing_repo = RepoModel.query.filter_by(
+            owner=owner,
+            repo_name=repo
+        ).join(RepoModel.users).filter(
+            UserModel.username == username
+        ).first()
+
+        if not existing_repo:
+            return jsonify({"error" : "User does not have this repo added!"}), 404
+
+        user.repos.remove(existing_repo)
+
+        num_users = len(existing_repo.users)
+        
+        # If there are no more users associated with the repo, delete it
+        if not num_users:
+            db.session.delete(existing_repo)
+
+        db.session.commit()
+
+        return jsonify({"status" : "received"}), 200
+
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
+
+    
+
 # Organize the repos into 'rooms'
 @socketio.on('join')
 def on_join(data):
@@ -242,9 +298,18 @@ def webhook():
     payload_data = json.loads(payload['payload'])
     repo_name = payload_data['repository']['name']
     owner_name = payload_data['repository']['owner']['login']
+    repo = g.get_repo(owner_name + '/' + repo_name)
+
+    commit_id = payload_data.get('after')
+    llm_response = get_llm_response(repo, commit_id)
 
     # If successful push, then we get the new file contents and feed it to the Chatbot
-    socketio.emit('webhook-received', payload, room=repo_name)
+    socketio.emit('webhook-received', {
+        'commit_id': commit_id,
+        'response': llm_response,
+        'repo_name': repo_name,
+        'owner_name': owner_name
+    }, room=repo_name)
 
     return jsonify({"status": "received"}), 200 # *** Send Owner and Repo name to Frontend
     
