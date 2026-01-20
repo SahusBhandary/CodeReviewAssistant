@@ -15,6 +15,10 @@ const RepoView = () => {
     const [ repoLoading, setRepoLoading ] = useState(true);
     const [ webhookData, setWebhookData ] = useState(null);
     const [ llmResponse, setLLMResponse ] = useState("");
+    const [ defaultBranch, setDefaultBranch ] = useState("");
+    const [ branches, setBranches ] = useState([]);
+    const [ selectedBranch, setSelectedBranch ] = useState("");
+    const [ isOpen, setIsOpen ] = useState(false);
 
     // Parse params
     const { slug } = params;
@@ -58,14 +62,15 @@ const RepoView = () => {
         const fetchBranches = async () => {
             try {
                 const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
-                console.log(response);
+                setDefaultBranch(response.data.default_branch);
+                setBranches(response.data.branches);
             }
             catch(error){
                 console.error("Error: ", error);
             }
         }
         fetchBranches();
-    })
+    }, [selectedBranch]);
 
     const fetchRepoContent = async () => {
         try {
@@ -101,7 +106,33 @@ const RepoView = () => {
     return (
         <>
             <div className='flex flex-col'>
-                <div className='flex justify-center font-bold text-xl m-5'>{owner + "-" + repo}</div>
+                <div
+                    className='flex justify-between m-5'
+                >
+                    <div
+                        className='font-bold text-xl'
+                    >
+                        {owner + "-" + repo}
+                    </div>
+                    <div 
+                        className="bg-gray-500 px-5 py-2 cursor-pointer"
+                        onClick={() => setIsOpen(true)}
+                    >
+                        <button
+                            className='cursor-pointer'
+                        >
+                            {selectedBranch ? selectedBranch : defaultBranch}
+                        </button>
+                        {isOpen && 
+                            <ul>
+                                {branches.map((branch) => (
+                                    branch != defaultBranch ? <li key={branch}>{branch}</li> : ""
+                                ))}
+                            </ul>
+                        }
+                    </div>
+                </div>
+                
                 {webhookData && 
                     <div className='flex justify-center'>
                         <button className='border p-2 cursor-pointer' onClick={() => window.location.reload()}>New Push Made, Click to Refresh</button>
