@@ -6,7 +6,6 @@ import os
 from langchain_chroma import Chroma
 from app import client
 import string
-import math
 
 def vectorize_repo(repo):
     # Get necessary objects from repo object
@@ -37,20 +36,21 @@ def vectorize_repo(repo):
                 # Chunk
                 chunks = parser.parse_file(file_content)
                 
-                # Add to vector store
-                ids = []
-                documents = []
+                if chunks:
+                    # Add to vector store
+                    ids = []
+                    documents = []
 
-                for i, chunk in enumerate(chunks):
-                    document = Document(
-                        page_content = chunk['content'],
-                        metadata = chunk['metadata']
-                    )
-                    
-                    ids.append(str(i+1))
-                    documents.append(document)
+                    for i, chunk in enumerate(chunks):
+                        document = Document(
+                            page_content = chunk['content'],
+                            metadata = chunk['metadata']
+                        )
+                        
+                        ids.append(str(i+1))
+                        documents.append(document)
 
-                vector_store.add_documents(documents=documents, ids=ids)
+                    vector_store.add_documents(documents=documents, ids=ids)
         
         return vector_store.as_retriever(search_kwargs={"k": 5})
                 

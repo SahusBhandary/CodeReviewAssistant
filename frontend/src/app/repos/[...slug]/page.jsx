@@ -53,6 +53,20 @@ const RepoView = () => {
         return () => socket.disconnect();
     }, [repo]);
 
+    // Fetch Branches
+    useEffect(() => {
+        const fetchBranches = async () => {
+            try {
+                const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
+                console.log(response);
+            }
+            catch(error){
+                console.error("Error: ", error);
+            }
+        }
+        fetchBranches();
+    })
+
     const fetchRepoContent = async () => {
         try {
             const response = await axios.post(`http://localhost:5001/get_repo_content/${owner}/${repo}`, {

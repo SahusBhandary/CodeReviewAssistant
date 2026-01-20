@@ -282,7 +282,20 @@ def delete_repo(owner, repo):
     except Exception as e:
         return jsonify({"error" : str(e)}), 404
 
+@app.route('/get_branches/<owner>/<repo_name>', methods=['GET', 'POST'])
+def get_repo_branches(owner, repo_name):
+    try:
+        repo = g.get_repo(f"{owner}/{repo_name}")
+        branches = [branch.name for branch in repo.get_branches()]
+        default_branch = repo.default_branch
+        
+        return jsonify({'status':'received', 
+                        'default_branch': default_branch, 
+                        'branches': branches
+                        }), 200
     
+    except Exception as e:
+        return jsonify({"error" : str(e)}), 404
 
 # Organize the repos into 'rooms'
 @socketio.on('join')
