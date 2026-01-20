@@ -70,7 +70,8 @@ const RepoView = () => {
             }
         }
         fetchBranches();
-    }, [selectedBranch]);
+        setSelectedBranch(defaultBranch);
+    }, [repo]);
 
     const fetchRepoContent = async () => {
         try {
@@ -115,18 +116,29 @@ const RepoView = () => {
                         {owner + "-" + repo}
                     </div>
                     <div 
-                        className="bg-gray-500 px-5 py-2 cursor-pointer"
-                        onClick={() => setIsOpen(true)}
+                        className="bg-gray-200 px-5 py-2"
                     >
                         <button
-                            className='cursor-pointer'
+                            className='cursor-pointer bg-gray-500'
+                            onClick={() => setIsOpen(!isOpen)}
                         >
-                            {selectedBranch ? selectedBranch : defaultBranch}
+                            {isOpen ? "▲" : "▼"}
+                            {selectedBranch}
                         </button>
                         {isOpen && 
                             <ul>
                                 {branches.map((branch) => (
-                                    branch != defaultBranch ? <li key={branch}>{branch}</li> : ""
+                                    branch != selectedBranch ? 
+                                    <li 
+                                        onClick={() => {
+                                            setSelectedBranch(branch);
+                                            setIsOpen(false);
+                                        }}
+                                        key={branch}
+                                        className='cursor-pointer bg-gray-500'
+                                    >
+                                        {branch}
+                                    </li> : ""
                                 ))}
                             </ul>
                         }
