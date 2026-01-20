@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { useSearchParams } from 'next/navigation'
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import ReactMarkdown from 'react-markdown'
@@ -10,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 const RepoView = () => {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams()
     const { user, loading } = useUser();
     const [ repoContent, setRepoContent ] = useState([]);
     const [ repoLoading, setRepoLoading ] = useState(true);
@@ -31,6 +33,8 @@ const RepoView = () => {
         if (!loading && user) {
             fetchRepoContent();
         }
+        const urlSelectedBranch = searchParams.get('branch');
+        setSelectedBranch(urlSelectedBranch);
     }, [loading, user, owner, repo]);
 
     // Webhook 
@@ -63,7 +67,6 @@ const RepoView = () => {
             try {
                 const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
                 setDefaultBranch(response.data.default_branch);
-                setSelectedBranch(response.data.default_branch);
                 setBranches(response.data.branches);
             }
             catch(error){
@@ -79,7 +82,6 @@ const RepoView = () => {
                 username: user.username,
                 content: content,
             });
-            console.log(response.data.contents);
             setRepoContent(response.data.contents);
         }
         catch(error){
@@ -97,7 +99,7 @@ const RepoView = () => {
             // Build the new URL by appending the directory name
             const currentPath = `/repos/${owner}/${repo}`;
             const additionalPath = content.length > 0 ? `/${content.join('/')}` : '';
-            router.push(`${currentPath}${additionalPath}/${item.name}`);
+            router.push(`${currentPath}${additionalPath}/${item.name}?branch=${selectedBranch}`);
         } else {
             // Handle file click - maybe show file content
             console.log('File clicked:', item);
