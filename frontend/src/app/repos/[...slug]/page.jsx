@@ -63,6 +63,7 @@ const RepoView = () => {
             try {
                 const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
                 setDefaultBranch(response.data.default_branch);
+                setSelectedBranch(response.data.default_branch);
                 setBranches(response.data.branches);
             }
             catch(error){
@@ -70,7 +71,6 @@ const RepoView = () => {
             }
         }
         fetchBranches();
-        setSelectedBranch(defaultBranch);
     }, [repo]);
 
     const fetchRepoContent = async () => {
