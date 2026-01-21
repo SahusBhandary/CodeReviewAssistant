@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import ReactMarkdown from 'react-markdown'
@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 const RepoView = () => {
     const params = useParams();
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams()
     const { user, loading } = useUser();
     const [ repoContent, setRepoContent ] = useState([]);
@@ -33,9 +34,7 @@ const RepoView = () => {
         if (!loading && user) {
             fetchRepoContent();
         }
-        const urlSelectedBranch = searchParams.get('branch');
-        setSelectedBranch(urlSelectedBranch);
-    }, [loading, user, owner, repo]);
+    }, [loading, user, owner, repo, selectedBranch]);
 
     // Webhook 
     useEffect(() => {
@@ -78,15 +77,18 @@ const RepoView = () => {
 
     const fetchRepoContent = async () => {
         try {
-            const response = await axios.post(`http://localhost:5001/get_repo_content/${owner}/${repo}`, {
+            const urlSelectedBranch = await searchParams.get('branch');
+            console.log(urlSelectedBranch)
+            const response = await axios.post(`http://localhost:5001/get_repo_content/${owner}/${repo}/${urlSelectedBranch}`, {
                 username: user.username,
                 content: content,
             });
+            setSelectedBranch(urlSelectedBranch);
             setRepoContent(response.data.contents);
         }
         catch(error){
             console.log("Error:",error);
-            setRepoContent(null);
+            setRepoContent([]);
             return;
         }
         finally{
@@ -105,6 +107,13 @@ const RepoView = () => {
             console.log('File clicked:', item);
         }
     }
+
+    const updateBranch = (newBranch) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('branch', newBranch);
+        setSelectedBranch(newBranch);
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     return (
         <>
@@ -133,7 +142,7 @@ const RepoView = () => {
                                     branch != selectedBranch ? 
                                     <li 
                                         onClick={() => {
-                                            setSelectedBranch(branch);
+                                            updateBranch(branch);
                                             setIsOpen(false);
                                         }}
                                         key={branch}
