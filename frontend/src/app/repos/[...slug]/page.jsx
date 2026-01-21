@@ -16,6 +16,7 @@ const RepoView = () => {
     const { user, loading } = useUser();
     const [ repoContent, setRepoContent ] = useState([]);
     const [ repoLoading, setRepoLoading ] = useState(true);
+    const [ branchLoading, setBranchLoading ] = useState(true);
     const [ webhookData, setWebhookData ] = useState(null);
     const [ llmResponse, setLLMResponse ] = useState("");
     const [ defaultBranch, setDefaultBranch ] = useState("");
@@ -28,13 +29,53 @@ const RepoView = () => {
     const owner = slug?.[0];
     const repo = slug?.[1];
     const content = slug?.slice(2) || [];
+    const contentPath = content.join('/');
+    const urlSelectedBranch = searchParams.get('branch')
+
+    // Fetch Branches
+    useEffect(() => {
+        const fetchBranches = async () => {
+            try {
+                const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
+                setDefaultBranch(response.data.default_branch);
+                setBranches(response.data.branches);
+            }
+            catch(error){
+                console.error("Error: ", error);
+                setBranchLoading(true);
+            }
+            finally{
+                setBranchLoading(false);
+            }
+        }
+        fetchBranches();
+    }, [repo]);
     
     // Fetch Repo Content
     useEffect(() => {
-        if (!loading && user) {
+        const fetchRepoContent = async () => {
+            try {
+                const response = await axios.post(`http://localhost:5001/get_repo_content/${owner}/${repo}/${urlSelectedBranch}`, {
+                    username: user.username,
+                    content: content,
+                });
+                setSelectedBranch(urlSelectedBranch);
+                setRepoContent(response.data.contents);
+            }
+            catch(error){
+                console.log("Error:",error);
+                setRepoContent([]);
+                return;
+            }
+            finally{
+                setRepoLoading(false);
+            }
+        }
+
+        if (!loading && user && urlSelectedBranch) {
             fetchRepoContent();
         }
-    }, [loading, user, owner, repo, selectedBranch]);
+    }, [loading, user, owner, repo, urlSelectedBranch, contentPath]);
 
     // Webhook 
     useEffect(() => {
@@ -60,42 +101,6 @@ const RepoView = () => {
         return () => socket.disconnect();
     }, [repo]);
 
-    // Fetch Branches
-    useEffect(() => {
-        const fetchBranches = async () => {
-            try {
-                const response = await axios.post(`http://localhost:5001/get_branches/${owner}/${repo}`);
-                setDefaultBranch(response.data.default_branch);
-                setBranches(response.data.branches);
-            }
-            catch(error){
-                console.error("Error: ", error);
-            }
-        }
-        fetchBranches();
-    }, [repo]);
-
-    const fetchRepoContent = async () => {
-        try {
-            const urlSelectedBranch = await searchParams.get('branch');
-            console.log(urlSelectedBranch)
-            const response = await axios.post(`http://localhost:5001/get_repo_content/${owner}/${repo}/${urlSelectedBranch}`, {
-                username: user.username,
-                content: content,
-            });
-            setSelectedBranch(urlSelectedBranch);
-            setRepoContent(response.data.contents);
-        }
-        catch(error){
-            console.log("Error:",error);
-            setRepoContent([]);
-            return;
-        }
-        finally{
-            setRepoLoading(false);
-        }
-    }
-
     const onContentClick = (item) => {
         if (item.type === 'dir') {
             // Build the new URL by appending the directory name
@@ -112,7 +117,8 @@ const RepoView = () => {
         const params = new URLSearchParams(searchParams);
         params.set('branch', newBranch);
         setSelectedBranch(newBranch);
-        router.push(`${pathname}?${params.toString()}`);
+        const currentPath = `/repos/${owner}/${repo}`;
+        router.push(`${currentPath}?${params.toString()}`);
     };
 
     return (
@@ -161,7 +167,7 @@ const RepoView = () => {
                         <button className='border p-2 cursor-pointer' onClick={() => window.location.reload()}>New Push Made, Click to Refresh</button>
                     </div>
                 }
-                {!repoLoading ?
+                {!repoLoading || !branchLoading ?
                     <ul>
                         {repoContent.map((cont, index) => (
                             <li 

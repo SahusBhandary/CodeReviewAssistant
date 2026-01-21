@@ -219,8 +219,6 @@ def get_repo_files(owner, repo, branch):
     path = '/'.join(data.get('content', []))
     path = unquote(path)
     branch = unquote(branch)
-    print(branch)
-    print(path)
 
     try:
         # Check if user has this repo added
