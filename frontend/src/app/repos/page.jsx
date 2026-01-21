@@ -55,9 +55,21 @@ const Repos = () => {
         }
     }
 
+    const fetchDefaultBranch = async (repoOwner, repoName) => {
+        try {
+            const response = await axios.post(`http://localhost:5001/get_branches/${repoOwner}/${repoName}`);
+            return response.data.default_branch;
+        }
+        catch(error){
+            console.error("Error: ", error);
+            return null;
+        }
+    }
+
     // Function for selecting a repository
     const onRepoClick = async (repoOwner, repoName) => {
-        router.push(`/repos/${repoOwner}/${repoName}`)
+        const defaultBranch = await fetchDefaultBranch(repoOwner, repoName);
+        router.push(`/repos/${repoOwner}/${repoName}?branch=${defaultBranch}`);
     }
 
     return (

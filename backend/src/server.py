@@ -11,6 +11,7 @@ from flask_socketio import join_room
 from vector import vectorize_repo
 from llm import get_llm_response
 import os
+from urllib.parse import unquote
 
 auth = Auth.Token(os.getenv('GITHUB_TOKEN'))
 g = Github(auth=auth)
@@ -211,11 +212,13 @@ def add_repo(owner, repo_name):
         return jsonify({"error" : str(e)}), 404
 
 # Get repo content based on frontend url
-@app.route('/get_repo_content/<owner>/<repo>', methods=['GET', 'POST'])
-def get_repo_files(owner, repo):
+@app.route('/get_repo_content/<owner>/<repo>/<branch>', methods=['GET', 'POST'])
+def get_repo_files(owner, repo, branch):
     data = request.json
     username = data['username']
     path = '/'.join(data.get('content', []))
+    path = unquote(path)
+    branch = unquote(branch)
 
     try:
         # Check if user has this repo added
@@ -230,7 +233,7 @@ def get_repo_files(owner, repo):
             return jsonify({"status": "error", "message": "User does not have repo added!"})
 
         repo = g.get_repo(f"{owner}/{repo}")
-        contents = repo.get_contents(path)
+        contents = repo.get_contents(path, ref=branch)
         root_content = []
         for content_file in contents:
             root_content.append({
