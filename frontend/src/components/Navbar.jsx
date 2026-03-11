@@ -8,18 +8,18 @@ const Navbar = () => {
     const { user, loading, fetchUser } = useUser();
     
     return (
-        <nav className="flex justify-between px-15 py-2 border-b border-gray-500">
+        <nav className="flex justify-between px-15 py-3 border-b border-gray-500">
             <div>
-                <Link href="/">Home</Link>
+                <Link className="font-bold hover:border-b borger-gray-600" href="/">AI Code Review Assistant</Link>
             </div>
-            <div>
-                <Link href="/repos">Repos</Link>
-            </div>
-            <div>
-                {
-                    user ? <Link href="/logout">Logout</Link> :
-                    <Link href="/login">Login</Link> 
-                }
+            <div className="flex gap-20">
+                <Link className="font-bold hover:border-b borger-gray-600" href="/repos">Repos</Link>
+                <div className="font-bold hover:border-b borger-gray-600">
+                    {
+                        user ? <Link href="/logout">Logout</Link> :
+                        <Link href="/login">Login</Link> 
+                    }
+                </div>
                 
             </div>
         </nav>
