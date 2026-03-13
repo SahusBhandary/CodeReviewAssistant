@@ -117,7 +117,7 @@ export default function Index() {
           <div className="flex flex-col gap-6">
             {steps.map((s) => (
               <div key={s.step} className="flex gap-5 items-start">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full border border-red-500/30 bg-red-500/10 flex items-center justify-center text-red-400 text-xs font-bold">
+                <div className="shrink-0 w-10 h-10 rounded-full border border-red-500/30 bg-red-500/10 flex items-center justify-center text-red-400 text-xs font-bold">
                   {s.step}
                 </div>
                 <div className="pt-1.5">
